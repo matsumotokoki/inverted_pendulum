@@ -100,7 +100,7 @@ void sw2_rise(void){
 	x=0;
 }
 void initialize(){
-	G=MODE? K:F;
+	G=(MODE? K:F);
 	sw1.rise(sw1_rise);
 	sw2.rise(sw2_rise);
 	sw1.mode(PullUp);
@@ -132,12 +132,11 @@ void config(){
 				if(type<=-1){type=(MODE? 5:3);}break;
 		}
 		x=0;
-		for(int i=0;i<(MODE?6:4);i++)printf("[%d]=%f  ",i,G[i]);
+		for(int i=0;i<(MODE?6:4);i++)printf("\033[%dm [%d]=%f \033[49m  ",(i==type?45:49),i,G[i]);
 		printf("gpen=%f  i=%d\n\r",gpen,type);
 }
 
 int main() {
-	
 	initialize();
 	control.attach(&pen_con,T);
 	while(1)config();
