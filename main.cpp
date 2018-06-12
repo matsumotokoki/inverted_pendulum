@@ -56,7 +56,7 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 		if(duty>1)duty=1;
 	
 		motor_left=duty;
-		motor_right=-duty;
+		motor_right=duty;
 
 		if(x>=max)x=max;
 		if(x<=min)x=min;
@@ -70,7 +70,7 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 		x += (enc_l - enc_r) / 2 * MPP;
 		th = gpen-(pen.read_u16() >>6 )*RPA;
 	
-		duty=(float)(F[0]*x+F[1]*(x-x0)/T+F[2]*th+F[3]*(th-th0)/T);
+		duty=-(float)(F[0]*x+F[1]*(x-x0)/T+F[2]*th+F[3]*(th-th0)/T);
 
 //		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
@@ -81,7 +81,7 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 		if(duty>1)duty=1;
 	
 		motor_left=duty;
-		motor_right=-duty;
+		motor_right=duty;
 
 		if(x>=max)x=max;
 		if(x<=min)x=min;
@@ -100,7 +100,7 @@ void sw2_rise(void){
 	x=0;
 }
 void initialize(){
-	G=(MODE? K:F);
+	G=MODE? K:F;
 	sw1.rise(sw1_rise);
 	sw2.rise(sw2_rise);
 	sw1.mode(PullUp);
@@ -132,7 +132,7 @@ void config(){
 				if(type<=-1){type=(MODE? 5:3);}break;
 		}
 		x=0;
-		for(int i=0;i<(MODE?6:4);i++)printf("\033[%dm [%d]=%f \033[49m  ",(i==type?45:49),i,G[i]);
+		for(int i=0;i<(MODE?6:4);i++)printf("[%d]=%f  ",i,G[i]);
 		printf("gpen=%f  i=%d\n\r",gpen,type);
 }
 
