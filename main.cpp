@@ -3,7 +3,7 @@
 #include "QEI.h"
 #include "math.h"
 
-#define MODE 1											//FEEDBACK : 0 , PID : 1
+#define MODE 0											//FEEDBACK : 0 , PID : 1
 
 BusOut led(LED1,LED2,LED3,LED4);
 InterruptIn sw1(SW1);
@@ -15,9 +15,9 @@ BusIn in(GPIO1,GPIO2,GPIO3,GPIO4);
 QEI qei_left(GPIO1,GPIO2,NC,48,QEI::X4_ENCODING);
 QEI qei_right(GPIO3,GPIO4,NC,48,QEI::X4_ENCODING);
 AnalogIn pen(AD5);
-const float T = 0.01;
+const float T = 0.001;
 const float MPP = 0.000507;		//MOVE PER PULSE
-const float RPA = 0.004054;		//RADIAN PER ANALOG VALUE
+const float RPA = 0.006141921;		//RADIAN PER ANALOG VALUE
 
 float enc_l,enc_r;
 float x,x0,th,th0;
@@ -31,7 +31,7 @@ float* G;
 
 float max=500,min=-500;
 float K[6]={0,0,0,0,0,0};
-float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
+float F[4]={-27.3861 ,8-117.2917 ,-443.5350 , -54.6752};
 //float F[4]={-0.006021,-0.094022,-20.490005,0.0090};
 
 #if(MODE)															//PID
@@ -40,13 +40,13 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 		enc_r = qei_right.getPulses();
 		qei_left.reset();
 		qei_right.reset();
-		x += (enc_l - enc_r) / 2 * MPP;
-		th = gpen-(pen.read_u16() >>6 )*RPA;
+		x -= (enc_l - enc_r) / 2 * MPP;
+		th = gpen-(pen.read_u16() >>6)*RPA;
 		xi+=x*T;
 		thi+=th*T;
 	
 		duty=(float)(K[0]*x+K[1]*xi+K[2]*(x-x0)/T+K[3]*th+K[4]*thi+K[5]*(th-th0)/T);
-
+	
 //		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
 		x0=x;
@@ -70,8 +70,8 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 		x += (enc_l - enc_r) / 2 * MPP;
 		th = gpen-(pen.read_u16() >>6 )*RPA;
 	
-		duty=-(float)(F[0]*x+F[1]*(x-x0)/T+F[2]*th+F[3]*(th-th0)/T);
-
+		duty=-(float)(F[0]*x+F[1]*(x-x0)+F[2]*th+F[3]*(th0-th));
+		//printf("%d --- %d\r\n ",pen.read_u16() ,pen.read_u16()>>6);
 //		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
 		x0=x;
