@@ -3,7 +3,7 @@
 #include "QEI.h"
 #include "math.h"
 
-#define MODE 1											//FEEDBACK : 0 , PID : 1
+#define MODE 0											//FEEDBACK : 0 , PID : 1
 
 BusOut led(LED1,LED2,LED3,LED4);
 InterruptIn sw1(SW1);
@@ -15,11 +15,12 @@ BusIn in(GPIO1,GPIO2,GPIO3,GPIO4);
 QEI qei_left(GPIO1,GPIO2,NC,48,QEI::X4_ENCODING);
 QEI qei_right(GPIO3,GPIO4,NC,48,QEI::X4_ENCODING);
 AnalogIn pen(AD5);
-const float T = 0.01;
-const float MPP = 0.000507;		//MOVE PER PULSE
-const float RPA = 0.004054;		//RADIAN PER ANALOG VALUE
 
-float enc_l,enc_r;
+const float T = 0.001;
+const float MPP = 0.000507;		//MOVE PER PULSE
+const float RPA = 0.006141921;		//RADIAN PER ANALOG VALUE
+
+float enc_l=0,enc_r=0;
 float x,x0,th,th0;
 float xi,thi;
 float duty;
@@ -31,48 +32,24 @@ float* G;
 
 float max=500,min=-500;
 float K[6]={0,0,0,0,0,0};
-float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
+float F[4]={-6.3246  ,-14.7681 , -36.7392  , -7.2317};
 //float F[4]={-0.006021,-0.094022,-20.490005,0.0090};
 
 #if(MODE)															//PID
-	void pen_con(){
-		enc_l = qei_left.getPulses();
-		enc_r = qei_right.getPulses();
-		qei_left.reset();
-		qei_right.reset();
-		x += (enc_l - enc_r) / 2 * MPP;
-		th = gpen-(pen.read_u16() >>6 )*RPA;
-		xi+=x*T;
-		thi+=th*T;
-	
-		duty=(float)(K[0]*x+K[1]*xi+K[2]*(x-x0)/T+K[3]*th+K[4]*thi+K[5]*(th-th0)/T);
 
-//		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
-
-		x0=x;
-		th0=th;
-	
-		if(duty<-1)duty=-1;
-		if(duty>1)duty=1;
-	
-		motor_left=duty;
-		motor_right=duty;
-
-		if(x>=max)x=max;
-		if(x<=min)x=min;
-	}
 #else																		//FEEDBACK
 	void pen_con(){
 		enc_l = qei_left.getPulses();
 		enc_r = qei_right.getPulses();
+		//printf("%5f %5f\n\r",enc_r,enc_l);
 		qei_left.reset();
 		qei_right.reset();
 		x += (enc_l - enc_r) / 2 * MPP;
 		th = gpen-(pen.read_u16() >>6 )*RPA;
 	
-		duty=-(float)(F[0]*x+F[1]*(x-x0)/T+F[2]*th+F[3]*(th-th0)/T);
+		duty=-(float)(F[0]*x+F[1]*(x-x0)+F[2]*th+F[3]*(th0-th));
+ 		//printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
-//		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
 		x0=x;
 		th0=th;
@@ -92,15 +69,15 @@ float F[4]={-0.006021,-0.094022,-13.5234033,0.00594};
 void sw1_rise(void){
 	gpen*=1.002;
 	led=led+1;
-	x=0;
+	//x=0;
 }
 void sw2_rise(void){
 	gpen*=0.998;
 	led=led-1;
-	x=0;
+	//x=0;
 }
 void initialize(){
-	G=MODE? K:F;
+	G=(MODE? K:F);
 	sw1.rise(sw1_rise);
 	sw2.rise(sw2_rise);
 	sw1.mode(PullUp);
@@ -114,7 +91,8 @@ void initialize(){
 	gpen = (pen.read_u16() >>6 )*RPA;
 	led = 0;
 }
-void config(){
+
+/*void config(){
 		tmp=fgetc(stdin);
 		switch(tmp){
 			case 'p':gpen=(pen.read_u16() >>6 )*RPA;break;
@@ -131,13 +109,13 @@ void config(){
 			case 'a':type-=1;
 				if(type<=-1){type=(MODE? 5:3);}break;
 		}
-		x=0;
+		//x=0;
 		for(int i=0;i<(MODE?6:4);i++)printf("[%d]=%f  ",i,G[i]);
 		printf("gpen=%f  i=%d\n\r",gpen,type);
-}
+}*/
 
 int main() {
 	initialize();
-	control.attach(&pen_con,T);
-	while(1)config();
+	//control.attach(&pen_con,T);
+	while(1)pen_con();
 }
