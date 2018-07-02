@@ -20,7 +20,7 @@ const float T = 0.001;
 const float MPP = 0.000507;		//MOVE PER PULSE
 const float RPA = 0.006141921;		//RADIAN PER ANALOG VALUE
 
-float enc_l,enc_r;
+float enc_l=0,enc_r=0;
 float x,x0,th,th0;
 float xi,thi;
 float duty;
@@ -32,50 +32,23 @@ float* G;
 
 float max=500,min=-500;
 float K[6]={0,0,0,0,0,0};
-float F[4]={-27.3861 ,8-117.2917 ,-443.5350 , -54.6752};
+float F[4]={-6.3246  ,-14.7681 , -36.7392  , -7.2317};
 //float F[4]={-0.006021,-0.094022,-20.490005,0.0090};
 
 #if(MODE)															//PID
-	void pen_con(){
-		enc_l = qei_left.getPulses();
-		enc_r = qei_right.getPulses();
-		qei_left.reset();
-		qei_right.reset();
-		x += (enc_l - enc_r) / 2 * MPP;
-		th = gpen-(pen.read_u16() >>6)*RPA;
-		xi+=x*T;
-		thi+=th*T;
-	
-		duty=(float)(K[0]*x+K[1]*xi+K[2]*(x-x0)+K[3]*th+K[4]*thi+K[5]*(th-th0));
-	
-//		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
-		x0=x;
-		th0=th;
-	
-		if(duty<-1)duty=-1;
-		if(duty>1)duty=1;
-	
-		motor_left=duty;
-		motor_right=duty;
-
-		if(x>=max)x=max;
-		if(x<=min)x=min;
-	}
 #else																		//FEEDBACK
 	void pen_con(){
 		enc_l = qei_left.getPulses();
 		enc_r = qei_right.getPulses();
+		//printf("%5f %5f\n\r",enc_r,enc_l);
 		qei_left.reset();
 		qei_right.reset();
 		x += (enc_l - enc_r) / 2 * MPP;
-		//printf("%5f  %5f  %5f  \r\n",x ,enc_r ,enc_l);
 		th = gpen-(pen.read_u16() >>6 )*RPA;
 	
 		duty=-(float)(F[0]*x+F[1]*(x-x0)+F[2]*th+F[3]*(th0-th));
-		//printf("%d --- %d\r\n ",pen.read_u16() ,pen.read_u16()>>6);
-		printf("%5f %5f %5f %5f %5f\n\r",enc_r,x-x0,th,th-th0,duty);
-//		printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
+ 		//printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
 
 		x0=x;
@@ -119,7 +92,7 @@ void initialize(){
 	led = 0;
 }
 
-void config(){
+/*void config(){
 		tmp=fgetc(stdin);
 		switch(tmp){
 			case 'p':gpen=(pen.read_u16() >>6 )*RPA;break;
@@ -139,10 +112,10 @@ void config(){
 		//x=0;
 		for(int i=0;i<(MODE?6:4);i++)printf("[%d]=%f  ",i,G[i]);
 		printf("gpen=%f  i=%d\n\r",gpen,type);
-}
+}*/
 
 int main() {
 	initialize();
-	control.attach(&pen_con,T);
-	while(1)config();
+	//control.attach(&pen_con,T);
+	while(1)pen_con();
 }
