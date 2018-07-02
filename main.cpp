@@ -3,7 +3,7 @@
 #include "QEI.h"
 #include "math.h"
 
-#define MODE 0											//FEEDBACK : 0 , PID : 1
+#define MODE 0											//FEEDBACK : 0 , PID & FEEDBACK: 1
 
 BusOut led(LED1,LED2,LED3,LED4);
 InterruptIn sw1(SW1);
@@ -25,17 +25,17 @@ float x,x0,th,th0;
 float xi,thi;
 float duty;
 float gpen;
+float gx=0;
+float p[4]={0};			//パラメータ*gain
 
-char tmp='a';
-int type=0;
+int i,j;
 float* G;
 
 float max=500,min=-500;
 float K[6]={0,0,0,0,0,0};
-float F[4]={-6.3246  ,-14.7681 , -36.7392  , -7.2317};
-//float F[4]={-0.006021,-0.094022,-20.490005,0.0090};
+float F[4]={-1.6330 , -11.6684 , -19.5464 ,  -2.9072};
 
-#if(MODE)															//PID
+#if(MODE)															//PID & FEEDBACK
 
 #else																		//FEEDBACK
 	void pen_con(){
@@ -46,14 +46,18 @@ float F[4]={-6.3246  ,-14.7681 , -36.7392  , -7.2317};
 		qei_right.reset();
 		x += (enc_l - enc_r) / 2 * MPP;
 		th = gpen-(pen.read_u16() >>6 )*RPA;
-	
-		duty=-(float)(F[0]*x+F[1]*(x-x0)+F[2]*th+F[3]*(th0-th));
+		p[0]=F[0]*x;
+		p[1]=F[1]*(x-x0);
+		p[2]=F[2]*th;
+		p[3]=F[3]*(th-th0);
+		for(i=0;i<4;i++)j=(p[i]>p[j]?i:j);
+		led=1<<j;
+		duty=-(float)(p[0]+p[1]+p[2]+p[3]);
  		//printf("%f %f %f %f %f\n\r",x,x-x0,th,th-th0,duty);
 
 
 		x0=x;
 		th0=th;
-	
 		if(duty<-1)duty=-1;
 		if(duty>1)duty=1;
 	
@@ -67,14 +71,14 @@ float F[4]={-6.3246  ,-14.7681 , -36.7392  , -7.2317};
 #endif
 
 void sw1_rise(void){
-	gpen*=1.002;
-	led=led+1;
-	//x=0;
+	gpen+=RPA;
+	//led=led+1;
+	x=gx;
 }
 void sw2_rise(void){
-	gpen*=0.998;
-	led=led-1;
-	//x=0;
+	gpen-=RPA;
+	//led=led-1;
+	x=gx;
 }
 void initialize(){
 	G=(MODE? K:F);
@@ -88,31 +92,11 @@ void initialize(){
 	qei_left.reset();
 	qei_right.reset();
  	x=x0=th=th0=xi=thi=0;
+	x=gx;
 	gpen = (pen.read_u16() >>6 )*RPA;
 	led = 0;
 }
 
-/*void config(){
-		tmp=fgetc(stdin);
-		switch(tmp){
-			case 'p':gpen=(pen.read_u16() >>6 )*RPA;break;
-			case 'l':gpen*=1.0003;led=led+1;break;
-			case 'k':gpen*=0.9998;led=led-1;break;
-			case '9':G[type]*=10; break;
-			case '8':G[type]*=-10; break;
-			case 'w':G[type]*=1.001; break;
-			case 's':G[type]*=0.999; break;
-			case 'W':G[type]+=0.1; break;
-			case 'S':G[type]-=0.1; break;
-			case 'd':type+=1;
-			if(type>=(MODE? 6:4)) {type=0;}break;
-			case 'a':type-=1;
-				if(type<=-1){type=(MODE? 5:3);}break;
-		}
-		//x=0;
-		for(int i=0;i<(MODE?6:4);i++)printf("[%d]=%f  ",i,G[i]);
-		printf("gpen=%f  i=%d\n\r",gpen,type);
-}*/
 
 int main() {
 	initialize();
